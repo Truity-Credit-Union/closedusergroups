@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @Import(
@@ -54,5 +55,10 @@ public class CUGCaeConfiguration {
   @Bean
   public AuthenticationProvider authenticationProvider() {
     return new CUGUserAuthenticationProvider();
+  }
+
+  @Bean
+  public RestTemplate restTemplate() {
+    return new RestTemplate();
   }
 }

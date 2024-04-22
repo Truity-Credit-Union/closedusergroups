@@ -9,13 +9,21 @@ import com.coremedia.blueprint.common.navigation.Navigation;
 import com.coremedia.blueprint.cug.CUGAuthorityStrategy;
 import com.coremedia.objectserver.dataviews.DataViewFactory;
 import com.coremedia.objectserver.web.HandlerHelper;
+import io.netty.handler.logging.LogLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
@@ -23,15 +31,28 @@ import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import static java.lang.invoke.MethodHandles.lookup;
 
 public class CUGAuthorizingHandlerInterceptor implements HandlerInterceptor {
 
   private SettingsService settingsService;
   private CUGAuthorityStrategy cugAuthorityStrategy;
   private DataViewFactory dataViewFactory;
+
+  //rest template
+  private RestTemplate restTemplate;
+
+  private static final Logger LOG = LoggerFactory.getLogger(lookup().lookupClass());
+
+  @Inject
+  public void setRestTemplate(RestTemplate restTemplate) {
+    this.restTemplate = restTemplate;
+  }
 
   public CUGAuthorizingHandlerInterceptor(CUGAuthorityStrategy cugAuthorityStrategy, SettingsService settingsService, DataViewFactory dataViewFactory) {
     this.settingsService = settingsService;
@@ -49,6 +70,33 @@ public class CUGAuthorizingHandlerInterceptor implements HandlerInterceptor {
      * content or navigation, we'll send the user/the request somewhere else authorized.
      */
     if (modelAndView != null) {
+      //api URL
+      HttpSession session = request.getSession();
+      String username = (String) session.getAttribute("username");
+
+      // validate username
+      if (username == null) {
+        LOG.warn("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
+        LOG.debug("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
+        LOG.error("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
+        LOG.info("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
+      }
+
+      String apiUrl = "https://hub3.66fcu.org/api/Employees/Groups/ByUsername/" + username;
+
+      ResponseEntity<String> apiResponse = restTemplate.getForEntity(apiUrl, String.class);
+
+      // Check if the request was successful
+      if (apiResponse.getStatusCode().is2xxSuccessful()) {
+        // Extract data from the response body if needed
+        String responseBody = apiResponse.getBody();
+        //modelAndView.getModelMap().addAttribute("employeeGroups", responseBody);
+        LOG.info("*********************** CUGAuthorizingHandlerInterceptor: API response body: " + responseBody);
+      } else {
+        // Handle error response
+        LOG.error("*********************** CUGAuthorizingHandlerInterceptor: Error fetching employee groups");
+      }
+
       Object rootModel = HandlerHelper.getRootModel(modelAndView);
 
       // get authentication information
