@@ -9,24 +9,26 @@ import com.coremedia.blueprint.common.navigation.Navigation;
 import com.coremedia.blueprint.cug.CUGAuthorityStrategy;
 import com.coremedia.objectserver.dataviews.DataViewFactory;
 import com.coremedia.objectserver.web.HandlerHelper;
-import io.netty.handler.logging.LogLevel;
+//import io.netty.handler.logging.LogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.beans.factory.annotation.Required;
-import org.springframework.http.HttpStatus;
+//import org.springframework.beans.factory.annotation.Required;
+//import org.springframework.http.HttpStatus;
+//import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+//import org.springframework.web.context.request.RequestContextHolder;
+//import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+//import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -40,11 +42,10 @@ import static java.lang.invoke.MethodHandles.lookup;
 
 public class CUGAuthorizingHandlerInterceptor implements HandlerInterceptor {
 
-  private SettingsService settingsService;
-  private CUGAuthorityStrategy cugAuthorityStrategy;
-  private DataViewFactory dataViewFactory;
+  private final SettingsService settingsService;
+  private final CUGAuthorityStrategy cugAuthorityStrategy;
+  private final DataViewFactory dataViewFactory;
 
-  //rest template
   private RestTemplate restTemplate;
 
   private static final Logger LOG = LoggerFactory.getLogger(lookup().lookupClass());
@@ -64,7 +65,10 @@ public class CUGAuthorizingHandlerInterceptor implements HandlerInterceptor {
   private BeanFactory beanFactory;
 
   @Override
-  public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) {
+  public void postHandle(@NonNull HttpServletRequest request,
+                         @NonNull HttpServletResponse response,
+                         @Nullable Object handler,
+                         @Nullable ModelAndView modelAndView) {
     /* Because we need content beans to do authorization checks, we can do this only in #postHandle.
      * We'll check the ModelAndView for its content bean and navigation. If the request targets an unauthorized
      * content or navigation, we'll send the user/the request somewhere else authorized.
@@ -80,6 +84,11 @@ public class CUGAuthorizingHandlerInterceptor implements HandlerInterceptor {
         LOG.debug("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
         LOG.error("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
         LOG.info("*********************** CUGAuthorizingHandlerInterceptor: Username not found in session");
+      } else {
+        LOG.info("*********************** CUGAuthorizingHandlerInterceptor: Username found in session: " + username);
+        LOG.warn("*********************** CUGAuthorizingHandlerInterceptor: Username found in session: " + username);
+        LOG.debug("*********************** CUGAuthorizingHandlerInterceptor: Username found in session: " + username);
+        LOG.error("*********************** CUGAuthorizingHandlerInterceptor: Username found in session: " + username);
       }
 
       String apiUrl = "https://hub3.66fcu.org/api/Employees/Groups/ByUsername/" + username;
@@ -90,11 +99,17 @@ public class CUGAuthorizingHandlerInterceptor implements HandlerInterceptor {
       if (apiResponse.getStatusCode().is2xxSuccessful()) {
         // Extract data from the response body if needed
         String responseBody = apiResponse.getBody();
-        //modelAndView.getModelMap().addAttribute("employeeGroups", responseBody);
+        modelAndView.getModelMap().addAttribute("employeeGroups", responseBody);
         LOG.info("*********************** CUGAuthorizingHandlerInterceptor: API response body: " + responseBody);
+        LOG.warn("*********************** CUGAuthorizingHandlerInterceptor: API response body: " + responseBody);
+        LOG.debug("*********************** CUGAuthorizingHandlerInterceptor: API response body: " + responseBody);
+        LOG.error("*********************** CUGAuthorizingHandlerInterceptor: API response body: " + responseBody);
       } else {
         // Handle error response
         LOG.error("*********************** CUGAuthorizingHandlerInterceptor: Error fetching employee groups");
+        LOG.info("*********************** CUGAuthorizingHandlerInterceptor: Error fetching employee groups");
+        LOG.warn("*********************** CUGAuthorizingHandlerInterceptor: Error fetching employee groups");
+        LOG.debug("*********************** CUGAuthorizingHandlerInterceptor: Error fetching employee groups");
       }
 
       Object rootModel = HandlerHelper.getRootModel(modelAndView);
